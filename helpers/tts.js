@@ -34,8 +34,12 @@ const region = process.env.AZURE_REGION
 const textToSpeech = async ({ threadId, audio }) => {
 	console.log('tts')
 	let text = 'qualcosa e andato storto'
+	// let text = 'ho trovato il guidatore ubriaco'
 
-	text = await speechToTextFromBlob(audio.buffer)
+	let firstText = text
+
+	firstText = await speechToTextFromBlob(audio.buffer)
+	text = firstText
 
 	threadId = threadId === 'undefined' ? undefined : threadId
 
@@ -43,11 +47,11 @@ const textToSpeech = async ({ threadId, audio }) => {
 	console.time('Execution Time')
 
 	let a = await runAndRetrieveMessageCompleted({ threadId, content: text })
+	a.response = a.response.replace(/\#/g, "").replace(/\[.*?source.*?\]/g, "").replace(/【.*?source.*?】/g, "")
 
 	console.timeEnd('Execution Time')
 	text = a.response
 
-	// convert callback function to promise
 	return new Promise((resolve, reject) => {
 
 		let ssml = SSML.replace("__TEXT__", text)
@@ -98,7 +102,7 @@ const textToSpeech = async ({ threadId, audio }) => {
 					const ja = path.join(__dirname, '..', 'public', `speech-${randomString}.mp3`)
 					fs.unlink(ja, () => { })
 				}, 120000);
-				resolve({ blendData, threadId: a.threadId, filename: `/speech-${randomString}.mp3` })
+				resolve({ blendData, threadId: a.threadId, filename: `/speech-${randomString}.mp3`, text: firstText, response: a.response })
 			},
 			error => {
 				synthesizer.close()
@@ -149,13 +153,13 @@ const speechToTextFromBlob = async (audio) => {
 }
 
 const convertWebMToWav = (inputBuffer, inputFilename, outputFilename) => {
-	// const inputPath = path.join(__dirname, inputFilename)
+	const inputPath = path.join(__dirname, inputFilename)
 
-	const inputPath = path.join(__dirname, 'audio (1).webm')
+	// const inputPath = path.join(__dirname, 'audio (1).webm')
 
 	const outputPath = path.join(__dirname, outputFilename)
 
-	// fs.writeFileSync(inputPath, inputBuffer)
+	fs.writeFileSync(inputPath, inputBuffer)
 
 	return new Promise((resolve, reject) => {
 		Ffmpeg(inputPath)
@@ -164,7 +168,7 @@ const convertWebMToWav = (inputBuffer, inputFilename, outputFilename) => {
 			.audioChannels(1)
 			.audioFrequency(16000)
 			.on('end', () => {
-				// fs.unlinkSync(inputPath)
+				fs.unlinkSync(inputPath)
 				resolve(outputPath)
 			})
 			.on('error', (err) => {
