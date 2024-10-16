@@ -6,7 +6,13 @@
 
 var app = require('../app');
 var debug = require('debug')('talking-avatar-backend:server');
-var http = require('http');
+var https = require('https');
+const fs = require('fs');
+
+const options = {
+    key: fs.readFileSync('/etc/letsencrypt/live/avatar.stratech.srl/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/avatar.stratech.srl/fullchain.pem')
+};
 
 /**
  * Get port from environment and store in Express.
@@ -16,10 +22,10 @@ var port = normalizePort(process.env.PORT || '5000');
 app.set('port', port);
 
 /**
- * Create HTTP server. 
+ * Create HTTPS server. 
  */
 
-var server = http.createServer(app);
+var server = https.createServer(options, app);
 
 /**
  * Listen on provided port, on all network interfaces.
